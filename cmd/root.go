@@ -96,6 +96,7 @@ func NewRootCommand(args []string) *cobra.Command {
 		newStartCommand(ctx),
 		newClientCommand(ctx),
 		newAgentCommand(ctx, args),
+		newShellCommand(ctx),
 	)
 
 	return cmd
