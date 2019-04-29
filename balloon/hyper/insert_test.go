@@ -340,7 +340,7 @@ func TestInsertInterpretation(t *testing.T) {
 			storedBatches: map[string][]byte{},
 			expectedMutations: []*storage.Mutation{
 				{
-					Table: storage.HyperCacheTable,
+					Table: storage.HyperTable,
 					Key:   pos(0, 4).Bytes(),
 					Value: []byte{
 						0xe0, 0x00, 0x00, 0x00, // bitmap: 11100000 00000000 00000000 00000000
@@ -388,7 +388,7 @@ func TestInsertInterpretation(t *testing.T) {
 			},
 			expectedMutations: []*storage.Mutation{
 				{
-					Table: storage.HyperCacheTable,
+					Table: storage.HyperTable,
 					Key:   pos(0, 4).Bytes(),
 					Value: []byte{
 						0xe0, 0x00, 0x00, 0x00, // bitmap: 11100000 00000000 00000000 00000000
@@ -437,7 +437,7 @@ func TestInsertInterpretation(t *testing.T) {
 			},
 			expectedMutations: []*storage.Mutation{
 				{
-					Table: storage.HyperCacheTable,
+					Table: storage.HyperTable,
 					Key:   pos(1, 0).Bytes(),
 					Value: []byte{
 						0xe0, 0x00, 0x00, 0x00, // bitmap: 11100000 00000000 00000000 00000000
@@ -447,7 +447,7 @@ func TestInsertInterpretation(t *testing.T) {
 					},
 				},
 				{
-					Table: storage.HyperCacheTable,
+					Table: storage.HyperTable,
 					Key:   pos(0, 0).Bytes(),
 					Value: []byte{
 						0xe0, 0x00, 0x00, 0x00, // bitmap: 11100000 00000000 00000000 00000000
@@ -457,7 +457,7 @@ func TestInsertInterpretation(t *testing.T) {
 					},
 				},
 				{
-					Table: storage.HyperCacheTable,
+					Table: storage.HyperTable,
 					Key:   pos(0, 4).Bytes(),
 					Value: []byte{
 						0xd1, 0x01, 0x80, 0x00, // bitmap: 11010001 00000001 10000000 00000000
@@ -509,7 +509,7 @@ func TestInsertInterpretation(t *testing.T) {
 			},
 			expectedMutations: []*storage.Mutation{
 				{
-					Table: storage.HyperCacheTable,
+					Table: storage.HyperTable,
 					Key:   pos(0, 4).Bytes(),
 					Value: []byte{
 						0xfe, 0x00, 0x00, 0x00, // bitmap: 11111110 00000000 00000000 00000000
@@ -566,7 +566,7 @@ func TestInsertInterpretation(t *testing.T) {
 			},
 			expectedMutations: []*storage.Mutation{
 				{
-					Table: storage.HyperCacheTable,
+					Table: storage.HyperTable,
 					Key:   pos(0, 4).Bytes(),
 					Value: []byte{
 						0xfe, 0x1e, 0x00, 0x00, // bitmap: 11111110 00011110 00000000 00000000
@@ -622,7 +622,7 @@ func TestInsertInterpretation(t *testing.T) {
 			},
 			expectedMutations: []*storage.Mutation{
 				{
-					Table: storage.HyperCacheTable,
+					Table: storage.HyperTable,
 					Key:   pos(128, 4).Bytes(),
 					Value: []byte{
 						0xe0, 0x00, 0x00, 0x00, // bitmap: 11100000 00000000 00000000 00000000
