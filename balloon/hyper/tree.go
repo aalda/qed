@@ -58,7 +58,8 @@ func NewHyperTree(hasherF func() hashing.Hasher, store storage.Store, cache cach
 		hasher:           hasher,
 		cacheHeightLimit: cacheHeightLimit,
 		defaultHashes:    make([]hashing.Digest, numBits),
-		batchLoader:      NewDefaultBatchLoader(store, cache, cacheHeightLimit),
+		//batchLoader:      NewDefaultBatchLoader(store, cache, cacheHeightLimit),
+		batchLoader: NewStoreOnlyBatchLoader(store, cacheHeightLimit),
 	}
 
 	tree.defaultHashes[0] = tree.hasher.Do([]byte{0x0}, []byte{0x0})

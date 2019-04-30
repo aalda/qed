@@ -69,3 +69,34 @@ func (l defaultBatchLoader) loadBatchFromStore(pos position) *batchNode {
 	batch := parseBatchNode(len(pos.Index), kv.Value)
 	return batch
 }
+
+type storeOnlyBatchLoader struct {
+	cacheHeightLimit uint16
+	store            storage.Store
+}
+
+func NewStoreOnlyBatchLoader(store storage.Store, cacheHeightLimit uint16) *storeOnlyBatchLoader {
+	return &storeOnlyBatchLoader{
+		cacheHeightLimit: cacheHeightLimit,
+		store:            store,
+	}
+}
+
+func (l storeOnlyBatchLoader) Load(pos position) *batchNode {
+	if pos.Height > l.cacheHeightLimit {
+		return l.loadBatchFromStore(pos, storage.HyperCacheTable)
+	}
+	return l.loadBatchFromStore(pos, storage.HyperTable)
+}
+
+func (l storeOnlyBatchLoader) loadBatchFromStore(pos position, table storage.Table) *batchNode {
+	kv, err := l.store.Get(table, pos.Bytes())
+	if err != nil {
+		if err == storage.ErrKeyNotFound {
+			return newEmptyBatchNode(len(pos.Index))
+		}
+		log.Fatalf("Oops, something went wrong. Unable to load batch: %v", err)
+	}
+	batch := parseBatchNode(len(pos.Index), kv.Value)
+	return batch
+}

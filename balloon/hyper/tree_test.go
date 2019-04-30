@@ -261,19 +261,19 @@ func BenchmarkAdd(b *testing.B) {
 
 	log.SetLogger("BenchmarkAdd", log.SILENT)
 
-	store, closeF := storage_utils.OpenRocksDBStore(b, "/var/tmp/hyper_tree_test.db")
-	defer closeF()
+	store, _ := storage_utils.OpenRocksDBStore(b, "/var/tmp/hyper_tree_test.db")
+	//defer closeF()
 
 	hasher := hashing.NewSha256Hasher()
 	freeCache := cache.NewFreeCache(CacheSize)
 	tree := NewHyperTree(hashing.NewSha256Hasher, store, freeCache)
 
 	hyperMetrics := metrics_utils.CustomRegister(AddTotal)
-	srvCloseF := metrics_utils.StartMetricsServer(hyperMetrics, store)
+	srvCloseF := metrics_utils.StartMetricsServer(hyperMetrics) //, store)
 	defer srvCloseF()
 
 	b.ResetTimer()
-	b.N = 2000000
+	b.N = 10000000
 	for i := 0; i < b.N; i++ {
 		index := make([]byte, 8)
 		binary.LittleEndian.PutUint64(index, uint64(i))

@@ -98,6 +98,68 @@ func BenchmarkQueryOnlyHyper(b *testing.B) {
 
 }
 
+func BenchmarkMutateOnlyHyperCache(b *testing.B) {
+	store, closeF := openRocksDBStore(b)
+	defer closeF()
+
+	srvCloseF := startMetricsServer(store)
+	defer srvCloseF()
+
+	b.N = 10000000
+	b.ResetTimer()
+
+	hasher := hashing.NewFakeSha256Hasher()
+	value := rand.Bytes(1024)
+	for i := 0; i < b.N; i++ {
+		key := util.Uint16AsBytes(uint16(rnd.Intn(10)))
+		key = append(key, hasher.Do([]byte(fmt.Sprintf("test%d", rnd.Intn(10000))))...)
+		store.Mutate([]*storage.Mutation{
+			{
+				Table: storage.HyperCacheTable,
+				Key:   key,
+				Value: value,
+			},
+		})
+	}
+
+}
+
+func BenchmarkQueryOnlyHyperCache(b *testing.B) {
+	store, closeF := openRocksDBStore(b)
+	defer closeF()
+
+	N := 10000000
+	b.N = N
+	hasher := hashing.NewFakeSha256Hasher()
+
+	srvCloseF := startMetricsServer(store)
+	defer srvCloseF()
+
+	// populate storage
+	value := rand.Bytes(1024)
+	for i := 0; i < b.N; i++ {
+		key := []byte{0x0, 0x0}
+		key = append(key, hasher.Do([]byte(fmt.Sprintf("test%d", rnd.Intn(10000))))...)
+		store.Mutate([]*storage.Mutation{
+			{
+				Table: storage.HyperCacheTable,
+				Key:   key,
+				Value: value,
+			},
+		})
+	}
+
+	b.ResetTimer()
+
+	for i := 0; i < b.N; i++ {
+		key := []byte{0x0, 0x0}
+		key = append(key, hasher.Do([]byte(fmt.Sprintf("test%d", rnd.Intn(1000))))...)
+		_, err := store.Get(storage.HyperCacheTable, key)
+		require.NoError(b, err)
+	}
+
+}
+
 func BenchmarkMutateOnlyHistory(b *testing.B) {
 	store, closeF := openRocksDBStore(b)
 	defer closeF()

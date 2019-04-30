@@ -75,6 +75,7 @@ func NewRocksDBStoreOpts(opts *Options) (*RocksDBStore, error) {
 
 	cfNames := []string{
 		storage.DefaultTable.String(),
+		storage.HyperCacheTable.String(),
 		storage.HyperTable.String(),
 		storage.HistoryTable.String(),
 		storage.FSMStateTable.String(),
@@ -82,13 +83,14 @@ func NewRocksDBStoreOpts(opts *Options) (*RocksDBStore, error) {
 
 	// env
 	env := rocksdb.NewDefaultEnv()
-	env.SetBackgroundThreads(5)
-	env.SetHighPriorityBackgroundThreads(3)
+	env.SetBackgroundThreads(6)
+	env.SetHighPriorityBackgroundThreads(4)
 
 	// global options
 	globalOpts := rocksdb.NewDefaultOptions()
 	globalOpts.SetCreateIfMissing(true)
 	globalOpts.SetCreateIfMissingColumnFamilies(true)
+
 	//globalOpts.SetMaxOpenFiles(1000)
 	globalOpts.SetEnv(env)
 	// We build a LRU cache with a high pool ratio of 0.4 (40%). The lower pool
@@ -103,6 +105,7 @@ func NewRocksDBStoreOpts(opts *Options) (*RocksDBStore, error) {
 	// Per column family options
 	cfOpts := []*rocksdb.Options{
 		rocksdb.NewDefaultOptions(),
+		getHyperCacheTableOpts(),
 		getHyperTableOpts(blockCache),
 		getHistoryTableOpts(blockCache),
 		getFsmStateTableOpts(),
@@ -137,6 +140,47 @@ func NewRocksDBStoreOpts(opts *Options) (*RocksDBStore, error) {
 	}
 
 	return store, nil
+}
+
+func getHyperCacheTableOpts() *rocksdb.Options {
+	opts := rocksdb.NewDefaultOptions()
+	// Change memtable format to HashSkipList. It keeps keys in
+	// buckets based on prefix of the key. Each bucket is a skip list.
+	//opts.SetHashSkipListRep(100000, 4, 4)
+	// Concurrent memtable writes not supported for HashSkipList
+	//opts.SetAllowConcurrentMemtableWrites(false)
+	// Set a plain table factory with the following options:
+	// * keyLen = 34 (pos.Bytes())
+	// * bloomBitsPerKey = 10
+	// * hashTableRation = 0.75
+	// * indexSparnesses = 16
+	opts.SetPlainTableFactory(34, 10, 0.75, 16)
+	// Disable compression
+	opts.SetCompression(rocksdb.NoCompression)
+	// Set a fixed prefix extractor
+	opts.SetPrefixExtractor(rocksdb.NewFixedPrefixTransform(8))
+	// Use the memory addressing table format built for low-latency access
+	opts.SetAllowMmapReads(true)
+	opts.SetAllowMmapWrites(true)
+
+	// We use level style compaction with high concurrency.
+	opts.SetWriteBufferSize(64 * 1024 * 1024) // 64MB
+	opts.SetMaxWriteBufferNumber(2)
+	opts.SetMinWriteBufferNumberToMerge(1)
+	opts.SetLevel0FileNumCompactionTrigger(8)
+	opts.SetLevel0SlowdownWritesTrigger(17)
+	opts.SetLevel0StopWritesTrigger(24)
+	opts.SetTargetFileSizeBase(64 * 1024 * 1024) // 64MB
+	opts.SetTargetFileSizeMultiplier(8)
+	opts.SetMaxBytesForLevelBase(512 * 1024 * 1024) // 512MB
+	opts.SetMaxBytesForLevelMultiplier(8)
+	opts.SetNumLevels(4)
+
+	// io parallelism
+	opts.SetMaxBackgroundCompactions(4)
+	opts.SetMaxBackgroundFlushes(1)
+
+	return opts
 }
 
 // The hyper table has the more varied behavior. It receives
