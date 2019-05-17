@@ -68,6 +68,16 @@ rocksdb_slicetransform_t* rocksdb_slicetransform_create_ext(uintptr_t idx) {
     	(const char* (*)(void*))(rocksdb_slicetransform_name));
 }
 
+/* Comparator */
+
+rocksdb_comparator_t* rocksdb_comparator_create_ext(uintptr_t idx) {
+    return rocksdb_comparator_create(
+        (void*)idx,
+        rocksdb_destruct_handler,
+        (int (*)(void*, const char*, size_t, const char*, size_t))(rocksdb_comparator_compare),
+        (const char *(*)(void*))(rocksdb_comparator_name));
+}
+
 /* Filter Policy */
 
 rocksdb_filterpolicy_t* rocksdb_filterpolicy_create_ext(uintptr_t idx) {

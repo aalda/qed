@@ -66,6 +66,10 @@ extern void rocksdb_destruct_handler(void* state);
 
 extern rocksdb_slicetransform_t* rocksdb_slicetransform_create_ext(uintptr_t idx);
 
+/* Comparator */
+
+extern rocksdb_comparator_t* rocksdb_comparator_create_ext(uintptr_t idx);
+
 /* Filter Policy */
 
 extern rocksdb_filterpolicy_t* rocksdb_filterpolicy_create_ext(uintptr_t idx);

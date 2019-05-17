@@ -43,6 +43,7 @@ type Options struct {
 	env  *Env
 	bbto *BlockBasedTableOptions
 	cst  *C.rocksdb_slicetransform_t
+	ccmp *C.rocksdb_comparator_t
 }
 
 // NewDefaultOptions creates the default Options.
@@ -74,6 +75,18 @@ func (o *Options) SetEnv(value *Env) {
 // bottlenecked by RocksDB.
 func (o *Options) IncreaseParallelism(totalThreads int) {
 	C.rocksdb_options_increase_parallelism(o.c, C.int(totalThreads))
+}
+
+// SetComparator sets the comparator which define the order of keys in the table.
+// Default: a comparator that uses lexicographic byte-wise ordering
+func (o *Options) SetComparator(value Comparator) {
+	if nc, ok := value.(nativeComparator); ok {
+		o.ccmp = nc.c
+	} else {
+		idx := registerComparator(value)
+		o.ccmp = C.rocksdb_comparator_create_ext(C.uintptr_t(idx))
+	}
+	C.rocksdb_options_set_comparator(o.c, o.ccmp)
 }
 
 // SetMaxWriteBufferNumber sets the maximum number of write buffers (memtables)
@@ -538,6 +551,9 @@ func (o *Options) Destroy() {
 	}
 	if o.cst != nil {
 		C.rocksdb_slicetransform_destroy(o.cst)
+	}
+	if o.ccmp != nil {
+		C.rocksdb_comparator_destroy(o.ccmp)
 	}
 	o.c = nil
 	o.env = nil
