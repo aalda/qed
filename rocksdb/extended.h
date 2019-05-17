@@ -66,6 +66,12 @@ extern void rocksdb_destruct_handler(void* state);
 
 extern rocksdb_slicetransform_t* rocksdb_slicetransform_create_ext(uintptr_t idx);
 
+/* Filter Policy */
+
+extern rocksdb_filterpolicy_t* rocksdb_filterpolicy_create_ext(uintptr_t idx);
+
+extern void rocksdb_filterpolicy_delete_filter(void* state, const char* v, size_t s);
+
 /* Statistics */
 
 typedef enum {

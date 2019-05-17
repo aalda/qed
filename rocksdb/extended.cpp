@@ -56,6 +56,8 @@ rocksdb_cache_t* rocksdb_cache_create_lru_with_ratio(
 
 void rocksdb_destruct_handler(void* state) { }
 
+/* Slice Transform */
+
 rocksdb_slicetransform_t* rocksdb_slicetransform_create_ext(uintptr_t idx) {
     return rocksdb_slicetransform_create(
     	(void*)idx,
@@ -66,6 +68,21 @@ rocksdb_slicetransform_t* rocksdb_slicetransform_create_ext(uintptr_t idx) {
     	(const char* (*)(void*))(rocksdb_slicetransform_name));
 }
 
+/* Filter Policy */
+
+rocksdb_filterpolicy_t* rocksdb_filterpolicy_create_ext(uintptr_t idx) {
+    return rocksdb_filterpolicy_create(
+        (void*)idx,
+        rocksdb_destruct_handler,
+        (char* (*)(void*, const char* const*, const size_t*, int, size_t*))(rocksdb_filterpolicy_create_filter),
+        (unsigned char (*)(void*, const char*, size_t, const char*, size_t))(rocksdb_filterpolicy_key_may_match),
+        rocksdb_filterpolicy_delete_filter,
+        (const char *(*)(void*))(rocksdb_filterpolicy_name));
+}
+
+void rocksdb_filterpolicy_delete_filter(void* state, const char* v, size_t s) { }
+
+/* Statistics */
 
 rocksdb_statistics_t* rocksdb_create_statistics() {
     rocksdb_statistics_t* result = new rocksdb_statistics_t;

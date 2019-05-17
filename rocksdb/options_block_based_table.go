@@ -17,6 +17,7 @@
 package rocksdb
 
 // #include <rocksdb/c.h>
+// #include "extended.h"
 import "C"
 
 // IndexType specifies the index type that will be used for this table.
@@ -148,9 +149,14 @@ func (o *BlockBasedTableOptions) SetBlockSizeDeviation(blockSizeDeviation int) {
 // Many applications will benefit from passing the result of
 // NewBloomFilterPolicy() here.
 // Default: nil
-func (o *BlockBasedTableOptions) SetFilterPolicy(fp *FilterPolicy) {
-	C.rocksdb_block_based_options_set_filter_policy(o.c, fp.policy)
-	o.fp = fp.policy
+func (o *BlockBasedTableOptions) SetFilterPolicy(fp FilterPolicy) {
+	if nfp, ok := fp.(nativeFilterPolicy); ok {
+		o.fp = nfp.c
+	} else {
+		idx := registerFilterPolicy(fp)
+		o.fp = C.rocksdb_filterpolicy_create_ext(C.uintptr_t(idx))
+	}
+	C.rocksdb_block_based_options_set_filter_policy(o.c, o.fp)
 }
 
 // SetNoBlockCache specify whether block cache should be used or not.
