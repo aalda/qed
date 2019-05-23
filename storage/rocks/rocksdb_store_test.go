@@ -92,6 +92,47 @@ func TestGetExistentKey(t *testing.T) {
 
 }
 
+func TestGetExistentKeyByScan(t *testing.T) {
+
+	store, closeF := openRocksDBStore(t)
+	defer closeF()
+
+	testCases := []struct {
+		table         storage.Table
+		key, value    []byte
+		expectedError error
+	}{
+		{storage.HistoryTable, []byte("Key1"), []byte("Value1"), nil},
+		{storage.HistoryTable, []byte("Key2"), []byte("Value2"), nil},
+		{storage.HyperTable, []byte("Key3"), []byte("Value3"), nil},
+		{storage.HyperTable, []byte("Key4"), []byte("Value4"), storage.ErrKeyNotFound},
+	}
+
+	for _, test := range testCases {
+		if test.expectedError == nil {
+			err := store.Mutate([]*storage.Mutation{
+				{
+					Table: test.table,
+					Key:   test.key,
+					Value: test.value,
+				},
+			})
+			require.NoError(t, err)
+		}
+
+		stored, err := store.GetByScan(test.table, test.key)
+		if test.expectedError == nil {
+			require.NoError(t, err)
+			require.Equalf(t, stored.Key, test.key, "The stored key does not match the original: expected %d, actual %d", test.key, stored.Key)
+			require.Equalf(t, stored.Value, test.value, "The stored value does not match the original: expected %d, actual %d", test.value, stored.Value)
+		} else {
+			require.Error(t, test.expectedError)
+		}
+
+	}
+
+}
+
 func TestGetRange(t *testing.T) {
 	store, closeF := openRocksDBStore(t)
 	defer closeF()

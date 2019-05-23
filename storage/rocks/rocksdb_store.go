@@ -89,6 +89,7 @@ func NewRocksDBStoreOpts(opts *Options) (*RocksDBStore, error) {
 	globalOpts := rocksdb.NewDefaultOptions()
 	globalOpts.SetCreateIfMissing(true)
 	globalOpts.SetCreateIfMissingColumnFamilies(true)
+	globalOpts.SetHashSkipListRep(2000000, 4, 4)
 	//globalOpts.SetMaxOpenFiles(1000)
 	globalOpts.SetEnv(env)
 	// We build a LRU cache with a high pool ratio of 0.4 (40%). The lower pool
@@ -166,14 +167,20 @@ func getHyperTableOpts(blockCache *rocksdb.Cache) *rocksdb.Options {
 	// activate partition filters
 	bbto.SetPartitionFilters(true)
 	bbto.SetPinTopLevelIndexAndFilterInCache(true)
-	bbto.SetIndexType(rocksdb.KTwoLevelIndexSearchIndexType)
+	//bbto.SetIndexType(rocksdb.KTwoLevelIndexSearchIndexType)
+	bbto.SetIndexType(rocksdb.KHashSearchIndexType)
 	bbto.SetBlockCache(blockCache)
 	// increase block size to 16KB
 	bbto.SetBlockSize(16 * 1024)
 
+	bbto.SetWholeKeyFiltering(false)
+
 	opts := rocksdb.NewDefaultOptions()
 	opts.SetBlockBasedTableFactory(bbto)
 	opts.SetCompression(rocksdb.SnappyCompression)
+
+	opts.SetPrefixExtractor(rocksdb.NewFixedPrefixTransform(34)) // Pos.Bytes() -> 34 bytes
+	opts.SetComparator(NewVersionedKeyComparator())
 
 	// We use level style compaction with high concurrency.
 	// Memtable size is 128MB and the total number of level 0
@@ -330,6 +337,23 @@ func (s *RocksDBStore) Get(table storage.Table, key []byte) (*storage.KVPair, er
 	}
 	result.Value = v
 	return result, nil
+}
+
+func (s *RocksDBStore) GetByScan(table storage.Table, key []byte) (*storage.KVPair, error) {
+	result := new(storage.KVPair)
+	result.Key = key
+	it := s.db.NewIteratorCF(s.ro, s.cfHandles[table])
+	defer it.Close()
+	it.Seek(key)
+	if it.ValidForPrefix(key) {
+		valueSlice := it.Value()
+		value := make([]byte, valueSlice.Size())
+		copy(value, valueSlice.Data())
+		result.Value = value
+		valueSlice.Free()
+		return result, nil
+	}
+	return nil, storage.ErrKeyNotFound
 }
 
 func (s *RocksDBStore) GetRange(table storage.Table, start, end []byte) (storage.KVRange, error) {

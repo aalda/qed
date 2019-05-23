@@ -28,6 +28,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/bbva/qed/hashing"
+	"github.com/bbva/qed/rocksdb"
 
 	"github.com/bbva/qed/storage"
 	"github.com/bbva/qed/testutils/rand"
@@ -66,8 +67,8 @@ func BenchmarkQueryOnlyHyper(b *testing.B) {
 	store, closeF := openRocksDBStore(b)
 	defer closeF()
 
-	N := 10000000
-	b.N = N
+	N := 1000000
+	b.N = N * 3
 	hasher := hashing.NewFakeSha256Hasher()
 
 	srvCloseF := startMetricsServer(store)
@@ -88,11 +89,50 @@ func BenchmarkQueryOnlyHyper(b *testing.B) {
 	}
 
 	b.ResetTimer()
-
+	b.N = N
 	for i := 0; i < b.N; i++ {
 		key := []byte{0x0, 0x0}
 		key = append(key, hasher.Do([]byte(fmt.Sprintf("test%d", rnd.Intn(1000))))...)
 		_, err := store.Get(storage.HyperTable, key)
+		require.NoError(b, err)
+	}
+
+}
+
+func BenchmarkQueryOnlyHyperByScan(b *testing.B) {
+	store, closeF := openRocksDBStore(b)
+	defer closeF()
+
+	N := 10000000
+	b.N = N
+	hasher := hashing.NewFakeSha256Hasher()
+
+	srvCloseF := startMetricsServer(store)
+	defer srvCloseF()
+
+	// populate storage
+	value := rand.Bytes(1024)
+	for i := 0; i < b.N; i++ {
+		for j := 0; j < 3; j++ {
+			key := []byte{0x0, 0x0}
+			key = append(key, hasher.Do([]byte(fmt.Sprintf("test%d", i)))...)
+			key = append(key, util.Uint64AsBytes(uint64(j))...)
+			store.Mutate([]*storage.Mutation{
+				{
+					Table: storage.HyperTable,
+					Key:   key,
+					Value: value,
+				},
+			})
+		}
+	}
+	store.db.Flush(rocksdb.NewDefaultFlushOptions())
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		key := []byte{0x0, 0x0}
+		key = append(key, hasher.Do([]byte(fmt.Sprintf("test%d", i)))...)
+		_, err := store.GetByScan(storage.HyperTable, key)
 		require.NoError(b, err)
 	}
 
