@@ -110,6 +110,20 @@ func (wb *WriteBatch) Count() int {
 	return int(C.rocksdb_writebatch_count(wb.c))
 }
 
+// PutLogData appends a blob of arbitrary size to the records in this batch.
+// The blob will be stored in the transaction log but not in any other files.
+// In particular, it will not be persisted to the SST files. When iterating
+// over this WriteBatch,  WriteBatch::Handler::LogData will be called with the contents
+// of the blob as it is encountered. Blobs, puts, deletes, and merges will be
+// encountered in the same order in which they were inserted. The blob will
+// NOT consume sequence number(s) and will NOT increase the count of the batch
+//
+// Example application: add timestamps to the transaction log for use in
+// replication.
+func (wb *WriteBatch) PutLogData(blob []byte, size int) {
+	C.rocksdb_writebatch_put_log_data(wb.c, bytesToChar(blob), C.size_t(size))
+}
+
 // Destroy deallocates the WriteBatch object.
 func (wb *WriteBatch) Destroy() {
 	C.rocksdb_writebatch_destroy(wb.c)
