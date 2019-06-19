@@ -24,20 +24,23 @@ import (
 	"unsafe"
 )
 
+// WALIterator is used to iterate over the transactions
+// in a db. One run on the iterator is continuous, i.e. the
+// iterator will stop at the beginning of any gap in sequences.
 type WALIterator struct {
-	it *C.rocksdb_wal_iterator_t
+	c *C.rocksdb_wal_iterator_t
 }
 
-// NewNativeIterator creates a WALIterator object.
+// NewNativeWALIterator creates a WALIterator object.
 func NewNativeWALIterator(c unsafe.Pointer) *WALIterator {
-	return &WALIterator{it: (*C.rocksdb_wal_iterator_t)(c)}
+	return &WALIterator{c: (*C.rocksdb_wal_iterator_t)(c)}
 }
 
 // Valid returns false only when an Iterator has iterated past either the
 // first or the last key in the database. An iterator is either positioned
 // at a key/value pair, or not valid.
 func (iter *WALIterator) Valid() bool {
-	return C.rocksdb_wal_iter_valid(iter.it) != 0
+	return C.rocksdb_wal_iter_valid(iter.c) != 0
 }
 
 // Next moves the iterator to the next sequential key in the database.
@@ -45,20 +48,31 @@ func (iter *WALIterator) Valid() bool {
 // at the last entry in the source.
 // REQUIRES: Valid()
 func (iter *WALIterator) Next() {
-	C.rocksdb_wal_iter_next(iter.it)
+	C.rocksdb_wal_iter_next(iter.c)
 }
 
+// Status returns an error if something has gone wrong or else
+// it returns nil.
 func (iter *WALIterator) Status() error {
 	var cErr *C.char
-	C.rocksdb_wal_iter_status(iter.it, &cErr)
+	C.rocksdb_wal_iter_status(iter.c, &cErr)
 	if cErr != nil {
-		errors.New(C.GoString(cErr))
+		return errors.New(C.GoString(cErr))
 	}
 	return nil
 }
 
+// GetBatch returns, if valid, the current write_batch and the sequence
+// number of the earliest transaction contained in the batch.
+// ONLY use if Valid() is true and status() is OK.
+func (iter *WALIterator) GetBatch() (*WriteBatch, uint64) {
+	var cSeqNum C.uint64_t
+	cBatch := C.rocksdb_wal_iter_get_batch(iter.c, &cSeqNum)
+	return NewNativeWriteBatch(cBatch), uint64(cSeqNum)
+}
+
 // Close closes the iterator.
 func (iter *WALIterator) Close() {
-	C.rocksdb_wal_iter_destroy(iter.it)
-	iter.it = nil
+	C.rocksdb_wal_iter_destroy(iter.c)
+	iter.c = nil
 }

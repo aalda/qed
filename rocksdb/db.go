@@ -406,22 +406,6 @@ func (db *DB) GetUint64Property(propName string) uint64 {
 	return uint64(cValue)
 }
 
-func (db *DB) GetLatestSequenceNumber() uint64 {
-	var cValue C.uint64_t
-	cValue = C.rocksdb_get_latest_sequence_number(db.c)
-	return uint64(CValue)
-}
-
-func (db *DB) GetUpdatesSince(seqNum uint64) (*WALIterator, error) {
-	var cErr *C.char
-	// TODO: nil must bne const rocksdb_wal_readoptions_t* options,
-	cIter := C.rocksdb_get_updates_since(db.c, c.uint64_t(seqNum), nil, cErr)
-	if cErr != nil {
-		return nil, error.New(cErr)
-	}
-	return NewNativeWALIterator(unsafe.Pointer(cIter)), nil
-}
-
 // GetUint64PropertyCF returns the value of a database property.
 func (db *DB) GetUint64PropertyCF(propName string, cf *ColumnFamilyHandle) uint64 {
 	cProp := C.CString(propName)
@@ -429,4 +413,30 @@ func (db *DB) GetUint64PropertyCF(propName string, cf *ColumnFamilyHandle) uint6
 	var cValue C.uint64_t
 	C.rocksdb_property_int_cf(db.c, cf.c, cProp, &cValue)
 	return uint64(cValue)
+}
+
+// GetLatestSequenceNumber returns the sequence number of the most
+// recent transaction.
+func (db *DB) GetLatestSequenceNumber() uint64 {
+	var cValue C.uint64_t
+	cValue = C.rocksdb_get_latest_sequence_number(db.c)
+	return uint64(cValue)
+}
+
+// GetUpdatesSince sets iter to an iterator that is positioned at a
+// write-batch containing seq_number. If the sequence number is non existent,
+// it returns an iterator at the first available seq_no after the requested seq_no.
+// Returns an error if iterator is not valid.
+// Must set WAL_ttl_seconds or WAL_size_limit_MB to large values to
+// use this api, else the WAL files will get cleared aggressively and the
+// iterator might keep getting invalid before an update is read.
+func (db *DB) GetUpdatesSince(seqNum uint64) (*WALIterator, error) {
+	var cErr *C.char
+	var cOpts *C.rocksdb_wal_readoptions_t
+	cIter := C.rocksdb_get_updates_since(db.c, C.uint64_t(seqNum), cOpts, &cErr)
+	if cErr != nil {
+		defer C.free(unsafe.Pointer(cErr))
+		return nil, errors.New(C.GoString(cErr))
+	}
+	return NewNativeWALIterator(unsafe.Pointer(cIter)), nil
 }
