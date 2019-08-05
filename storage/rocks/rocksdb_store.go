@@ -21,7 +21,6 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"time"
 
 	"github.com/bbva/qed/metrics"
 	"github.com/bbva/qed/rocksdb"
@@ -66,6 +65,7 @@ type Options struct {
 	MaxTotalWalSize  uint64
 	WALSizeLimitMB   uint64
 	WALTtlSeconds    uint64
+	ReadOnly         bool
 }
 
 func DefaultOptions() *Options {
@@ -74,13 +74,20 @@ func DefaultOptions() *Options {
 		MaxTotalWalSize:  0,
 		WALSizeLimitMB:   1 << 20,
 		WALTtlSeconds:    0,
+		ReadOnly:         false,
 	}
 }
 
-func NewRocksDBStore(path string, ttl time.Duration) (*RocksDBStore, error) {
+func NewRocksDBStore(path string) (*RocksDBStore, error) {
 	opts := DefaultOptions()
 	opts.Path = path
-	opts.WALTtlSeconds = uint64(ttl.Seconds())
+	return NewRocksDBStoreWithOpts(opts)
+}
+
+func NewRocksDBStoreReadOnly(path string) (*RocksDBStore, error) {
+	opts := DefaultOptions()
+	opts.Path = path
+	opts.ReadOnly = true
 	return NewRocksDBStoreWithOpts(opts)
 }
 
@@ -126,9 +133,19 @@ func NewRocksDBStoreWithOpts(opts *Options) (*RocksDBStore, error) {
 		getFsmStateTableOpts(),
 	}
 
-	db, cfHandles, err := rocksdb.OpenDBColumnFamilies(opts.Path, globalOpts, cfNames, cfOpts)
-	if err != nil {
-		return nil, err
+	var db *rocksdb.DB
+	var cfHandles rocksdb.ColumnFamilyHandles
+	var err error
+	if opts.ReadOnly {
+		db, cfHandles, err = rocksdb.OpenDBForReadOnlyColumnFamilies(opts.Path, globalOpts, cfNames, cfOpts, false)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		db, cfHandles, err = rocksdb.OpenDBColumnFamilies(opts.Path, globalOpts, cfNames, cfOpts)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	// Backup and restore stuff.

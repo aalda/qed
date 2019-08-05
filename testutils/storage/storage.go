@@ -33,7 +33,7 @@ func OpenBPlusTreeStore() (*bplus.BPlusTreeStore, func()) {
 }
 
 func OpenRocksDBStore(t require.TestingT, path string) (*rocks.RocksDBStore, func()) {
-	store, err := rocks.NewRocksDBStore(path, 0)
+	store, err := rocks.NewRocksDBStore(path)
 	if err != nil {
 		t.Errorf("Error opening rocksdb store: %v", err)
 		t.FailNow()

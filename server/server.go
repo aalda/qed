@@ -77,7 +77,10 @@ func NewServer(conf *Config) (*Server, error) {
 	}
 
 	// Open RocksDB store
-	store, err := rocks.NewRocksDBStore(conf.DBPath, conf.DbWalTtl)
+	storeOpts := rocks.DefaultOptions()
+	storeOpts.Path = conf.DBPath
+	storeOpts.WALTtlSeconds = uint64(conf.DbWalTtl.Seconds())
+	store, err := rocks.NewRocksDBStoreWithOpts(storeOpts)
 	if err != nil {
 		return nil, err
 	}
