@@ -53,10 +53,16 @@ func runServerVerify(cmd *cobra.Command, args []string) error {
 	defer db.Close()
 
 	last, err := db.GetLast(storage.HistoryTable)
+	if last == nil {
+		return fmt.Errorf("%v: empty database", err)
+	}
+
 	if err != nil {
 		return err
 	}
+
 	lastIndex := util.BytesAsUint64(last.Key[:8])
+
 	fmt.Printf("Verifying integrity from indexes %d and %d\n", 0, lastIndex)
 
 	reader := db.GetAll(storage.HistoryTable)
