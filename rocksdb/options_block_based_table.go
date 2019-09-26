@@ -17,6 +17,7 @@
 package rocksdb
 
 // #include <rocksdb/c.h>
+// #include "extended.h"
 import "C"
 
 // IndexType specifies the index type that will be used for this table.
@@ -32,6 +33,16 @@ const (
 	// KTwoLevelIndexSearchIndexType is a two-level index implementation. Both
 	// levels are binary search indexes.
 	KTwoLevelIndexSearchIndexType
+)
+
+// DataBlockIndexType is the index type used for the data block
+type DataBlockIndexType uint
+
+const (
+	// KDataBlockBinarySearch is the traditional block type
+	KDataBlockBinarySearch DataBlockIndexType = iota
+	// KDataBlockBinaryAndHash contains an additional hash index
+	KDataBlockBinaryAndHash
 )
 
 // BlockBasedTableOptions represents block-based table options.
@@ -200,4 +211,17 @@ func (o *BlockBasedTableOptions) SetWholeKeyFiltering(value bool) {
 // Default: kBinarySearch
 func (o *BlockBasedTableOptions) SetIndexType(value IndexType) {
 	C.rocksdb_block_based_options_set_index_type(o.c, C.int(value))
+}
+
+// SetDataBlockIndexType sets the index type used for the data block in this table.
+// See https://rocksdb.org/blog/2018/08/23/data-block-hash-index.html
+func (o *BlockBasedTableOptions) SetDataBlockIndexType(value DataBlockIndexType) {
+	C.rocksdb_block_based_options_set_data_block_index_type(o.c, C.int(value))
+}
+
+// SetDataBlockHashTableUtilRatio sets the utilization ratio of the hash index
+// in the data block. It is valid only when data_block_hash_index_type is
+// kDataBlockBinaryAndHash.
+func (o *BlockBasedTableOptions) SetDataBlockHashTableUtilRatio(value float64) {
+	C.rocksdb_block_based_options_data_block_hash_table_util_ratio(o.c, C.double(value))
 }

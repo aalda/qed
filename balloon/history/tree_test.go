@@ -513,7 +513,7 @@ func BenchmarkAdd(b *testing.B) {
 	srvCloseF := metrics_utils.StartMetricsServer(historyMetrics, store)
 	defer srvCloseF()
 
-	b.N = 10000000
+	b.N = 1000000
 	b.ResetTimer()
 	for i := uint64(0); i < uint64(b.N); i++ {
 		_, mutations, err := tree.Add(hasher.Do(rand.Bytes(64)), i)

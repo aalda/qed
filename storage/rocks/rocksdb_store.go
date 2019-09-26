@@ -181,6 +181,8 @@ func getHyperTableOpts(blockCache *rocksdb.Cache) *rocksdb.Options {
 	// touched on every operation.
 
 	bbto := rocksdb.NewDefaultBlockBasedTableOptions()
+	bbto.SetDataBlockIndexType(rocksdb.KDataBlockBinaryAndHash)
+	bbto.SetDataBlockHashTableUtilRatio(0.75)
 	bbto.SetFilterPolicy(rocksdb.NewFullBloomFilterPolicy(10))
 	// In order to have a fine-grained control over the memory usage
 	// we cache SST's index and filters in the block cache. The alternative
@@ -247,6 +249,8 @@ func getHistoryTableOpts(blockCache *rocksdb.Cache) *rocksdb.Options {
 	// This table performs both Get() and total order iterations.
 
 	bbto := rocksdb.NewDefaultBlockBasedTableOptions()
+	bbto.SetDataBlockIndexType(rocksdb.KDataBlockBinaryAndHash)
+	bbto.SetDataBlockHashTableUtilRatio(0.75)
 	bbto.SetFilterPolicy(rocksdb.NewBloomFilterPolicy(10)) // TODO consider full filters instead of block filters
 	// In order to have a fine-grained control over the memory usage
 	// we cache SST's index and filters in the block cache. The alternative

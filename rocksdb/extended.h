@@ -39,6 +39,19 @@ typedef struct rocksdb_statistics_t rocksdb_statistics_t;
 typedef struct rocksdb_histogram_data_t rocksdb_histogram_data_t;
 
 
+/* Block based table options */
+
+enum {
+    rocksdb_block_based_table_data_block_index_type_binary_search = 0,
+    rocksdb_block_based_table_data_block_index_type_binary_and_hash = 1,
+};
+
+extern void rocksdb_block_based_options_set_data_block_index_type(
+    rocksdb_block_based_table_options_t*, int);  // uses one of the above enums 
+
+extern void rocksdb_block_based_options_data_block_hash_table_util_ratio(
+    rocksdb_block_based_table_options_t*, double v);
+
 /* DB operations */ 
 
 extern rocksdb_statistics_t* rocksdb_create_statistics();

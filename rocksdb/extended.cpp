@@ -24,6 +24,7 @@
 #include "rocksdb/utilities/backupable_db.h"
 #include "rocksdb/status.h"
 #include "rocksdb/write_batch.h"
+#include "rocksdb/table.h"
 
 using rocksdb::DB;
 using rocksdb::ColumnFamilyHandle;
@@ -40,6 +41,7 @@ using rocksdb::BackupEngine;
 using rocksdb::BackupInfo;
 using rocksdb::Status;
 using rocksdb::RestoreOptions;
+using rocksdb::BlockBasedTableOptions;
 
 extern "C" {
 
@@ -53,6 +55,22 @@ struct rocksdb_backup_engine_t   { BackupEngine*     rep; };
 struct rocksdb_backup_engine_info_t { std::vector<BackupInfo> rep; };
 struct rocksdb_restore_options_t { RestoreOptions rep; };
 struct rocksdb_writebatch_t { WriteBatch rep; };
+struct rocksdb_block_based_table_options_t  { BlockBasedTableOptions rep; };
+
+/* Block based table options */
+
+void rocksdb_block_based_options_set_data_block_index_type(
+    rocksdb_block_based_table_options_t* options, int v) {
+    options->rep.data_block_index_type = static_cast<BlockBasedTableOptions::DataBlockIndexType>(v);
+}
+
+void rocksdb_block_based_options_data_block_hash_table_util_ratio(
+    rocksdb_block_based_table_options_t* options, double v) {
+    options->rep.data_block_hash_table_util_ratio = v;
+}
+
+
+/* Writebatch handler */
 
 struct rocksdb_writebatch_handler_t : public WriteBatch::Handler {
     void* state_;
